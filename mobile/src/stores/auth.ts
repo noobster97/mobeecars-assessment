@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 import api, { TOKEN_KEY } from '@/src/lib/api';
+import { clearUserData } from '@/src/lib/db';
 
 const USER_KEY = 'mobeecars_user';
 
@@ -52,11 +53,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await api.post('/auth/logout');
     } catch {
-      // ignore network errors on logout — local clear is what matters
+      // network failure on logout is fine — local clear is what matters
     }
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(USER_KEY),
+      clearUserData(),
     ]);
     set({ token: null, user: null });
   },

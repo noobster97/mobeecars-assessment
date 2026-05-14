@@ -4,18 +4,37 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import '../global.css';
-import { initDb } from '@/src/lib/db';
-import { flushLikes } from '@/src/lib/sync';
+import { OfflineBanner } from '@/src/components/OfflineBanner';
+import { getLastSyncAt, initDb } from '@/src/lib/db';
+import { flushLikes, syncCars } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
 
 const queryClient = new QueryClient();
+const AUTO_SYNC_TTL_MS = 5 * 60 * 1000; // skip syncCars if last sync was within 5 minutes
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
+
+/**
+ * Pulls fresh inventory if last sync is stale, AND drains queued local swipes.
+ * Silent on failure — retried on next trigger (next foreground or network reconnect).
+ */
+async function autoSync() {
+  try {
+    const last = await getLastSyncAt();
+    const fresh = last && Date.now() - new Date(last).getTime() < AUTO_SYNC_TTL_MS;
+    if (!fresh) {
+      await syncCars();
+    }
+  } catch {
+    // ignore — silent background sync
+  }
+  flushLikes().catch(() => undefined);
+}
 
 export default function RootLayout() {
   const token = useAuthStore((s) => s.token);
@@ -45,18 +64,21 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!token) return;
+
     const appSub = AppState.addEventListener('change', (next) => {
       const prev = appState.current;
       appState.current = next;
       if (prev.match(/inactive|background/) && next === 'active') {
-        flushLikes().catch(() => undefined);
+        autoSync();
       }
     });
+
     const netSub = NetInfo.addEventListener((state) => {
       if (state.isConnected && state.isInternetReachable !== false) {
-        flushLikes().catch(() => undefined);
+        autoSync();
       }
     });
+
     return () => {
       appSub.remove();
       netSub();
@@ -66,10 +88,18 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FFFFFF' } }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+        <View style={{ flex: 1 }}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#FFFFFF' },
+            }}
+          >
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+          </Stack>
+          {token ? <OfflineBanner /> : null}
+        </View>
         <StatusBar style="dark" />
       </QueryClientProvider>
     </SafeAreaProvider>
