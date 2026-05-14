@@ -1,25 +1,52 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
+
 import '../global.css';
+import { initDb } from '@/src/lib/db';
+import { useAuthStore } from '@/src/stores/auth';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+const queryClient = new QueryClient();
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // expo internals — safe to ignore
+});
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s.hydrated);
+  const hydrate = useAuthStore((s) => s.hydrate);
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    (async () => {
+      await initDb();
+      await hydrate();
+      await SplashScreen.hideAsync();
+    })();
+  }, [hydrate]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const inAuth = segments[0] === '(auth)';
+    if (!token && !inAuth) {
+      router.replace('/(auth)/login');
+    } else if (token && inAuth) {
+      router.replace('/(tabs)');
+    }
+  }, [hydrated, token, segments, router]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
       </Stack>
       <StatusBar style="auto" />
-    </ThemeProvider>
+    </QueryClientProvider>
   );
 }
