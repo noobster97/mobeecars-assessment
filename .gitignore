@@ -12,6 +12,9 @@ desktop.ini
 # Logs
 *.log
 
+# Crash dumps
+*.stackdump
+
 # Satoru-internal (not part of submission)
 /project.config.md
 /billing/
