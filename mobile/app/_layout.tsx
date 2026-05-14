@@ -1,19 +1,21 @@
+import NetInfo from '@react-native-community/netinfo';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import '../global.css';
 import { initDb } from '@/src/lib/db';
+import { flushLikes } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
 
 const queryClient = new QueryClient();
 
-SplashScreen.preventAutoHideAsync().catch(() => {
-  // expo internals — safe to ignore
-});
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
   const token = useAuthStore((s) => s.token);
@@ -21,6 +23,7 @@ export default function RootLayout() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const segments = useSegments();
   const router = useRouter();
+  const appState = useRef<AppStateStatus>(AppState.currentState);
 
   useEffect(() => {
     (async () => {
@@ -40,13 +43,35 @@ export default function RootLayout() {
     }
   }, [hydrated, token, segments, router]);
 
+  useEffect(() => {
+    if (!token) return;
+    const appSub = AppState.addEventListener('change', (next) => {
+      const prev = appState.current;
+      appState.current = next;
+      if (prev.match(/inactive|background/) && next === 'active') {
+        flushLikes().catch(() => undefined);
+      }
+    });
+    const netSub = NetInfo.addEventListener((state) => {
+      if (state.isConnected && state.isInternetReachable !== false) {
+        flushLikes().catch(() => undefined);
+      }
+    });
+    return () => {
+      appSub.remove();
+      netSub();
+    };
+  }, [token]);
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
-      <StatusBar style="auto" />
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FFFFFF' } }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+        <StatusBar style="dark" />
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }
