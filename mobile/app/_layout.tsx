@@ -10,6 +10,7 @@ import 'react-native-reanimated';
 
 import '../global.css';
 import { OfflineBanner } from '@/src/components/OfflineBanner';
+import { ToastProvider } from '@/src/components/Toast';
 import { getLastSyncAt, initDb } from '@/src/lib/db';
 import { flushLikes, syncCars } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
@@ -88,18 +89,20 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <View style={{ flex: 1 }}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: '#FFFFFF' },
-            }}
-          >
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
-          {token ? <OfflineBanner /> : null}
-        </View>
+        <ToastProvider>
+          <View style={{ flex: 1 }}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: '#FFFFFF' },
+              }}
+            >
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+            </Stack>
+            {token ? <OfflineBanner /> : null}
+          </View>
+        </ToastProvider>
         <StatusBar style="dark" />
       </QueryClientProvider>
     </SafeAreaProvider>

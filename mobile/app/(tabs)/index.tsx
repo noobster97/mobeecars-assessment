@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Pressable,
   Text,
@@ -13,6 +12,7 @@ import {
 import Swiper from 'react-native-deck-swiper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useToast } from '@/src/components/Toast';
 import { Wordmark } from '@/src/components/Wordmark';
 import {
   CarRow,
@@ -25,11 +25,12 @@ import { haptic } from '@/src/lib/haptics';
 import { flushLikes, syncCars } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
 
-const { height: SCREEN_H } = Dimensions.get('window');
+const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
 const CARD_HEIGHT = Math.min(SCREEN_H * 0.62, 580);
 
 export default function SwipeScreen() {
   const insets = useSafeAreaInsets();
+  const toast = useToast();
   const [cars, setCars] = useState<CarRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [exhausted, setExhausted] = useState(false);
@@ -89,11 +90,11 @@ export default function SwipeScreen() {
     try {
       const total = await syncCars();
       haptic.success();
-      Alert.alert('Synced', `Refreshed ${total} cars from the server.`);
+      toast.show({ variant: 'success', message: `Refreshed ${total} cars from the server.` });
       await load();
     } catch {
       haptic.warning();
-      Alert.alert('Offline', 'Could not reach the server. Try again later.');
+      toast.show({ variant: 'error', message: "Couldn't reach the server. You're offline." });
     }
   }
 
@@ -151,7 +152,7 @@ export default function SwipeScreen() {
         className="pb-3 flex-row items-center justify-between"
       >
         <View>
-          <Wordmark size="md" showFull />
+          <Wordmark size="md" />
           <Text className="text-[11px] text-fg-subtle mt-0.5">
             Hi, {user?.name ?? 'there'}
           </Text>
@@ -195,19 +196,20 @@ export default function SwipeScreen() {
           verticalSwipe={false}
           cardVerticalMargin={8}
           cardHorizontalMargin={18}
+          overlayOpacityHorizontalThreshold={SCREEN_W * 0.06}
           overlayLabels={{
             left: {
               title: 'SKIP',
               style: {
-                label: overlayLabel('#EF4444'),
-                wrapper: overlayWrapper('flex-end', -30),
+                label: overlayLabel('#EF4444', 'flex-end'),
+                wrapper: overlayWrapper('flex-end'),
               },
             },
             right: {
               title: 'LIKE',
               style: {
-                label: overlayLabel('#10B981'),
-                wrapper: overlayWrapper('flex-start', 30),
+                label: overlayLabel('#10B981', 'flex-start'),
+                wrapper: overlayWrapper('flex-start'),
               },
             },
           }}
@@ -356,26 +358,33 @@ function CarCard({ car }: { car: CarRow }) {
   );
 }
 
-function overlayLabel(bg: string) {
+function overlayLabel(bg: string, align: 'flex-start' | 'flex-end') {
   return {
     backgroundColor: bg,
     color: 'white',
-    fontSize: 30,
+    fontSize: 38,
     fontWeight: '900' as const,
-    borderRadius: 14,
-    paddingHorizontal: 20,
+    borderRadius: 16,
+    paddingHorizontal: 22,
     paddingVertical: 10,
     overflow: 'hidden' as const,
-    letterSpacing: 2,
+    letterSpacing: 3,
+    textAlign: align === 'flex-start' ? ('left' as const) : ('right' as const),
+    transform: [{ rotate: align === 'flex-start' ? '-12deg' : '12deg' }],
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
   };
 }
 
-function overlayWrapper(align: 'flex-start' | 'flex-end', marginLeft: number) {
+function overlayWrapper(align: 'flex-start' | 'flex-end') {
   return {
     flexDirection: 'column' as const,
     alignItems: align,
     justifyContent: 'flex-start' as const,
-    marginTop: 40,
-    marginLeft,
+    marginTop: 50,
+    marginLeft: align === 'flex-start' ? 28 : 0,
+    marginRight: align === 'flex-end' ? 28 : 0,
   };
 }

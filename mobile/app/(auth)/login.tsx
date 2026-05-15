@@ -80,7 +80,7 @@ export default function LoginScreen() {
           >
             <View className="items-start mb-10">
               <View className="mb-6">
-                <Wordmark size="xl" showFull />
+                <Wordmark size="xl" />
               </View>
               <Text className="text-[32px] font-black text-fg leading-tight tracking-tight">
                 Welcome back.

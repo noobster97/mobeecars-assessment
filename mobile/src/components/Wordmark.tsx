@@ -1,50 +1,31 @@
-import { Text, View } from 'react-native';
+import { Image } from 'expo-image';
+
+const LOGO = require('../../assets/images/logo.png');
+
+// Logo natural aspect ratio is ~3.6:1 (wide wordmark)
+const ASPECT = 3.6;
 
 type Size = 'sm' | 'md' | 'lg' | 'xl';
 
-const SIZES: Record<Size, { slashes: number; name: number; gap: number; weight: string }> = {
-  sm: { slashes: 16, name: 16, gap: 4, weight: '900' },
-  md: { slashes: 20, name: 20, gap: 5, weight: '900' },
-  lg: { slashes: 28, name: 28, gap: 7, weight: '900' },
-  xl: { slashes: 40, name: 40, gap: 10, weight: '900' },
+const HEIGHTS: Record<Size, number> = {
+  sm: 18,
+  md: 26,
+  lg: 38,
+  xl: 56,
 };
 
 /**
- * "///mobee" lockup — three red slashes + black wordmark.
- * Matches the real Mobee Cars brand identity.
+ * Real Mobee Cars logo (red ///M mark + dark wordmark).
+ * Renders the official PNG asset at the requested height; width scales by aspect.
  */
-export function Wordmark({
-  size = 'md',
-  showFull = false,
-}: {
-  size?: Size;
-  showFull?: boolean;
-}) {
-  const s = SIZES[size];
+export function Wordmark({ size = 'md' }: { size?: Size }) {
+  const h = HEIGHTS[size];
+  const w = h * ASPECT;
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <Text
-        style={{
-          fontSize: s.slashes,
-          fontWeight: s.weight as '900',
-          color: '#EF4444',
-          fontStyle: 'italic',
-          letterSpacing: -1,
-        }}
-      >
-        ///
-      </Text>
-      <Text
-        style={{
-          fontSize: s.name,
-          fontWeight: s.weight as '900',
-          color: '#0F172A',
-          marginLeft: s.gap,
-          letterSpacing: -0.5,
-        }}
-      >
-        mobee{showFull ? ' cars' : ''}
-      </Text>
-    </View>
+    <Image
+      source={LOGO}
+      style={{ width: w, height: h }}
+      contentFit="contain"
+    />
   );
 }
