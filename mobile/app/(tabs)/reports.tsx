@@ -108,7 +108,7 @@ export default function ReportsScreen() {
         />
       }
     >
-      <Text className="text-[28px] font-black text-fg tracking-tight">
+      <Text className="text-[32px] font-black text-fg tracking-tight">
         Insights
       </Text>
       <SyncStatusLine
@@ -249,13 +249,13 @@ function SyncStatusLine({
   unsynced: number;
 }) {
   return (
-    <View className="flex-row items-center mt-0.5">
+    <View className="flex-row items-center mt-1">
       <Ionicons
         name={unsynced > 0 ? 'cloud-upload-outline' : 'cloud-done-outline'}
-        size={13}
+        size={14}
         color={unsynced > 0 ? '#B45309' : '#94A3B8'}
       />
-      <Text className="text-xs text-fg-subtle ml-1.5">
+      <Text className="text-[13px] text-fg-muted ml-1.5">
         {lastSyncAt ? `Synced ${relativeTime(lastSyncAt)}` : 'Not yet synced'}
         {unsynced > 0 ? ` · ${unsynced} pending` : ''}
       </Text>
@@ -276,20 +276,19 @@ function StatCard({
 }) {
   const bg = tone === 'like' ? 'bg-emerald-500' : 'bg-red-500';
   return (
-    <View className={`flex-1 ${bg} rounded-2xl p-4`}>
+    <View className={`flex-1 ${bg} rounded-2xl p-5`}>
       <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-white/90 text-[11px] font-bold uppercase tracking-widest">
+        <Text className="text-white/90 text-[12px] font-bold uppercase tracking-widest">
           {label}
         </Text>
-        <Ionicons name={icon} size={16} color="rgba(255,255,255,0.85)" />
+        <Ionicons name={icon} size={18} color="rgba(255,255,255,0.9)" />
       </View>
-      <Text className="text-white text-4xl font-black">{value}</Text>
+      <Text className="text-white text-[44px] font-black leading-none mt-1">{value}</Text>
     </View>
   );
 }
 
 function TopPickCard({
-  rank,
   iconName,
   iconColor,
   label,
@@ -305,32 +304,32 @@ function TopPickCard({
 }) {
   return (
     <View
-      className="bg-white rounded-2xl p-4 mb-2.5 flex-row items-center border border-gray-100"
+      className="bg-white rounded-2xl p-4 mb-3 flex-row items-center border border-gray-100"
       style={{
         shadowColor: '#0F172A',
-        shadowOpacity: 0.04,
+        shadowOpacity: 0.05,
         shadowOffset: { width: 0, height: 2 },
         shadowRadius: 8,
         elevation: 1,
       }}
     >
       <View
-        className="w-11 h-11 rounded-2xl items-center justify-center mr-3"
+        className="w-12 h-12 rounded-2xl items-center justify-center mr-3.5"
         style={{ backgroundColor: `${iconColor}1A` }}
       >
-        <Ionicons name={iconName} size={22} color={iconColor} />
+        <Ionicons name={iconName} size={24} color={iconColor} />
       </View>
       <View className="flex-1">
-        <Text className="text-[11px] font-bold text-fg-muted uppercase tracking-widest">
+        <Text className="text-[12px] font-bold text-fg-muted uppercase tracking-widest">
           Most liked {label.toLowerCase()}
         </Text>
-        <Text className="text-lg font-bold text-fg mt-0.5" numberOfLines={1}>
+        <Text className="text-xl font-bold text-fg mt-0.5" numberOfLines={1}>
           {value}
         </Text>
       </View>
       {typeof count === 'number' && (
-        <View className="bg-primary-50 px-2.5 py-1 rounded-full">
-          <Text className="text-xs font-bold text-primary-700">
+        <View className="bg-primary-50 px-3 py-1.5 rounded-full">
+          <Text className="text-[13px] font-bold text-primary-700">
             {count}
           </Text>
         </View>
@@ -352,12 +351,12 @@ function DistributionBar({
 }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
   return (
-    <View className={last ? '' : 'mb-3'}>
-      <View className="flex-row justify-between mb-1.5">
-        <Text className="text-sm font-semibold text-fg">{label}</Text>
-        <Text className="text-sm font-bold text-fg-muted">{value}</Text>
+    <View className={last ? '' : 'mb-4'}>
+      <View className="flex-row justify-between mb-2">
+        <Text className="text-[15px] font-semibold text-fg">{label}</Text>
+        <Text className="text-[15px] font-bold text-fg-muted">{value}</Text>
       </View>
-      <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
+      <View className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
         <View
           className="h-full bg-primary rounded-full"
           style={{ width: `${pct}%` }}

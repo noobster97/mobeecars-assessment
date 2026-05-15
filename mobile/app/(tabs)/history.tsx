@@ -40,12 +40,12 @@ export default function HistoryScreen() {
     <View className="flex-1 bg-white">
       <View
         style={{ paddingTop: insets.top + 16, paddingHorizontal: 20 }}
-        className="pb-3"
+        className="pb-4"
       >
-        <Text className="text-[28px] font-black text-fg tracking-tight">
+        <Text className="text-[32px] font-black text-fg tracking-tight">
           Your activity
         </Text>
-        <Text className="text-sm text-fg-muted mt-0.5">
+        <Text className="text-base text-fg-muted mt-1">
           {items.length} swipes · {liked} liked · {skipped} skipped
         </Text>
       </View>
@@ -84,10 +84,10 @@ function HistoryRowCard({ item }: { item: HistoryRow }) {
   const isLiked = item.liked === 1;
   return (
     <View
-      className="flex-row items-center bg-white rounded-2xl p-3 border border-gray-100"
+      className="flex-row items-center bg-white rounded-2xl p-3.5 border border-gray-100"
       style={{
         shadowColor: '#0F172A',
-        shadowOpacity: 0.04,
+        shadowOpacity: 0.05,
         shadowOffset: { width: 0, height: 2 },
         shadowRadius: 8,
         elevation: 1,
@@ -95,31 +95,27 @@ function HistoryRowCard({ item }: { item: HistoryRow }) {
     >
       <Image
         source={{ uri: item.image_url }}
-        style={{ width: 64, height: 64, borderRadius: 14 }}
+        style={{ width: 72, height: 72, borderRadius: 14 }}
         contentFit="cover"
         cachePolicy="memory-disk"
       />
-      <View className="flex-1 ml-3">
-        <Text className="text-[11px] font-bold text-primary-600 uppercase tracking-widest">
+      <View className="flex-1 ml-3.5">
+        <Text className="text-[12px] font-bold text-primary-600 uppercase tracking-widest">
           {item.type}
         </Text>
-        <Text className="text-base font-bold text-fg mt-0.5" numberOfLines={1}>
+        <Text className="text-[17px] font-bold text-fg mt-1" numberOfLines={1}>
           {item.brand} {item.model}
         </Text>
-        <View className="flex-row items-center mt-1">
-          <Ionicons
-            name="time-outline"
-            size={11}
-            color="#94A3B8"
-          />
-          <Text className="text-[11px] text-fg-subtle ml-1">
+        <View className="flex-row items-center mt-1.5">
+          <Ionicons name="time-outline" size={13} color="#94A3B8" />
+          <Text className="text-[13px] text-fg-subtle ml-1">
             {relativeTime(item.swiped_at)}
           </Text>
           {item.synced === 0 && (
             <>
-              <View className="w-1 h-1 bg-fg-subtle rounded-full mx-1.5" />
-              <Ionicons name="cloud-upload-outline" size={11} color="#B45309" />
-              <Text className="text-[11px] text-amber-700 ml-1 font-medium">
+              <View className="w-1 h-1 bg-fg-subtle rounded-full mx-2" />
+              <Ionicons name="cloud-upload-outline" size={13} color="#B45309" />
+              <Text className="text-[13px] text-amber-700 ml-1 font-medium">
                 Pending
               </Text>
             </>
@@ -127,13 +123,13 @@ function HistoryRowCard({ item }: { item: HistoryRow }) {
         </View>
       </View>
       <View
-        className={`w-10 h-10 rounded-full items-center justify-center ${
+        className={`w-11 h-11 rounded-full items-center justify-center ${
           isLiked ? 'bg-emerald-50' : 'bg-red-50'
         }`}
       >
         <Ionicons
           name={isLiked ? 'heart' : 'close'}
-          size={isLiked ? 20 : 22}
+          size={isLiked ? 22 : 24}
           color={isLiked ? '#10B981' : '#EF4444'}
         />
       </View>

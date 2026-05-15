@@ -90,7 +90,8 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+            {token ? <OfflineBanner /> : null}
             <Stack
               screenOptions={{
                 headerShown: false,
@@ -100,7 +101,6 @@ export default function RootLayout() {
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(tabs)" />
             </Stack>
-            {token ? <OfflineBanner /> : null}
           </View>
         </ToastProvider>
         <StatusBar style="dark" />

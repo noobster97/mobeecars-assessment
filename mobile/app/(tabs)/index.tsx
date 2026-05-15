@@ -35,6 +35,7 @@ export default function SwipeScreen() {
   const [loading, setLoading] = useState(true);
   const [exhausted, setExhausted] = useState(false);
   const [unsynced, setUnsynced] = useState(0);
+  const [deckKey, setDeckKey] = useState(0);
   const swiperRef = useRef<Swiper<CarRow> | null>(null);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -78,11 +79,19 @@ export default function SwipeScreen() {
   }
 
   async function onUndo() {
-    haptic.select();
     const carId = await undoLastSwipe();
-    if (!carId) return;
-    swiperRef.current?.swipeBack(() => undefined);
+    if (!carId) {
+      toast.show({ variant: 'info', message: 'Nothing to rewind yet.' });
+      return;
+    }
+    haptic.select();
+    // Reload the unseen list — the un-swiped car is now back in it.
+    const fresh = await getUnseenCars();
+    setCars(fresh);
+    setExhausted(false);
+    setDeckKey((k) => k + 1); // force the deck to remount at index 0
     await refreshUnsynced();
+    toast.show({ variant: 'info', message: 'Card brought back.' });
   }
 
   async function onResync() {
@@ -148,32 +157,32 @@ export default function SwipeScreen() {
   return (
     <View className="flex-1 bg-surface-subtle">
       <View
-        style={{ paddingTop: insets.top + 12, paddingHorizontal: 20 }}
-        className="pb-3 flex-row items-center justify-between"
+        style={{ paddingTop: insets.top + 14, paddingHorizontal: 20 }}
+        className="pb-4 flex-row items-center justify-between"
       >
         <View>
-          <Wordmark size="md" />
-          <Text className="text-[11px] text-fg-subtle mt-0.5">
+          <Wordmark size="lg" />
+          <Text className="text-[13px] text-fg-muted mt-1">
             Hi, {user?.name ?? 'there'}
           </Text>
         </View>
-        <View className="flex-row items-center gap-2">
+        <View className="flex-row items-center gap-2.5">
           {unsynced > 0 && (
-            <View className="flex-row items-center bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-              <Ionicons name="cloud-upload-outline" size={12} color="#B45309" />
-              <Text className="text-[11px] font-bold text-amber-700 ml-1">
+            <View className="flex-row items-center bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200">
+              <Ionicons name="cloud-upload-outline" size={14} color="#B45309" />
+              <Text className="text-[13px] font-bold text-amber-700 ml-1.5">
                 {unsynced}
               </Text>
             </View>
           )}
           <Pressable onPress={onResync} hitSlop={8}>
-            <View className="w-9 h-9 bg-white rounded-xl items-center justify-center border border-gray-200">
-              <Ionicons name="refresh-outline" size={18} color="#475569" />
+            <View className="w-11 h-11 bg-white rounded-2xl items-center justify-center border border-gray-200">
+              <Ionicons name="refresh-outline" size={20} color="#475569" />
             </View>
           </Pressable>
           <Pressable onPress={logout} hitSlop={8}>
-            <View className="w-9 h-9 bg-white rounded-xl items-center justify-center border border-gray-200">
-              <Ionicons name="log-out-outline" size={18} color="#475569" />
+            <View className="w-11 h-11 bg-white rounded-2xl items-center justify-center border border-gray-200">
+              <Ionicons name="log-out-outline" size={20} color="#475569" />
             </View>
           </Pressable>
         </View>
@@ -181,6 +190,7 @@ export default function SwipeScreen() {
 
       <View style={{ flex: 1 }}>
         <Swiper
+          key={deckKey}
           ref={swiperRef}
           cards={cars}
           renderCard={(car) => <CarCard car={car} />}
@@ -217,8 +227,8 @@ export default function SwipeScreen() {
       </View>
 
       <View
-        style={{ paddingBottom: 12 }}
-        className="flex-row justify-center items-center gap-6 py-4 px-6"
+        style={{ paddingBottom: 16 }}
+        className="flex-row justify-center items-end gap-8 py-5 px-6"
       >
         <ActionButton variant="skip" onPress={onPressSkip} />
         <ActionButton variant="undo" onPress={onUndo} />
@@ -237,54 +247,73 @@ function ActionButton({
 }) {
   const config = {
     skip: {
-      size: 64,
+      size: 72,
       bg: '#FFFFFF',
       iconColor: '#EF4444',
       iconName: 'close' as const,
-      iconSize: 32,
+      iconSize: 36,
       shadowColor: '#EF4444',
+      label: 'SKIP',
+      labelColor: '#EF4444',
     },
     undo: {
-      size: 48,
+      size: 56,
       bg: '#FFFFFF',
       iconColor: '#475569',
       iconName: 'arrow-undo' as const,
-      iconSize: 20,
+      iconSize: 22,
       shadowColor: '#0F172A',
+      label: 'REWIND',
+      labelColor: '#94A3B8',
     },
     like: {
-      size: 64,
+      size: 72,
       bg: '#FFFFFF',
       iconColor: '#10B981',
       iconName: 'heart' as const,
-      iconSize: 28,
+      iconSize: 32,
       shadowColor: '#10B981',
+      label: 'LIKE',
+      labelColor: '#10B981',
     },
   }[variant];
 
   return (
-    <Pressable
-      onPress={onPress}
-      hitSlop={8}
-      style={({ pressed }) => ({
-        width: config.size,
-        height: config.size,
-        backgroundColor: config.bg,
-        borderRadius: config.size / 2,
-        alignItems: 'center',
-        justifyContent: 'center',
-        transform: [{ scale: pressed ? 0.92 : 1 }],
-        shadowColor: config.shadowColor,
-        shadowOpacity: variant === 'undo' ? 0.08 : 0.22,
-        shadowOffset: { width: 0, height: 6 },
-        shadowRadius: 14,
-        elevation: 5,
-        borderWidth: 0.5,
-        borderColor: '#E2E8F0',
-      })}
-    >
-      <Ionicons name={config.iconName} size={config.iconSize} color={config.iconColor} />
-    </Pressable>
+    <View style={{ alignItems: 'center' }}>
+      <Pressable
+        onPress={onPress}
+        hitSlop={8}
+        style={({ pressed }) => ({
+          width: config.size,
+          height: config.size,
+          backgroundColor: config.bg,
+          borderRadius: config.size / 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          transform: [{ scale: pressed ? 0.92 : 1 }],
+          shadowColor: config.shadowColor,
+          shadowOpacity: variant === 'undo' ? 0.08 : 0.22,
+          shadowOffset: { width: 0, height: 6 },
+          shadowRadius: 14,
+          elevation: 5,
+          borderWidth: 0.5,
+          borderColor: '#E2E8F0',
+        })}
+      >
+        <Ionicons name={config.iconName} size={config.iconSize} color={config.iconColor} />
+      </Pressable>
+      <Text
+        style={{
+          marginTop: 8,
+          fontSize: 11,
+          fontWeight: '700',
+          letterSpacing: 1.2,
+          color: config.labelColor,
+        }}
+      >
+        {config.label}
+      </Text>
+    </View>
   );
 }
 
@@ -303,7 +332,7 @@ function CarCard({ car }: { car: CarRow }) {
         elevation: 10,
       }}
     >
-      <View style={{ height: '70%', position: 'relative' }}>
+      <View style={{ height: '68%', position: 'relative' }}>
         <Image
           source={{ uri: car.image_url }}
           style={{ width: '100%', height: '100%' }}
@@ -324,11 +353,11 @@ function CarCard({ car }: { car: CarRow }) {
         <View
           style={{
             position: 'absolute',
-            top: 16,
-            left: 16,
+            top: 18,
+            left: 18,
             backgroundColor: 'rgba(255,255,255,0.95)',
-            paddingHorizontal: 12,
-            paddingVertical: 6,
+            paddingHorizontal: 14,
+            paddingVertical: 8,
             borderRadius: 999,
             flexDirection: 'row',
             alignItems: 'center',
@@ -336,23 +365,23 @@ function CarCard({ car }: { car: CarRow }) {
         >
           <View
             style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
+              width: 7,
+              height: 7,
+              borderRadius: 3.5,
               backgroundColor: '#EF4444',
-              marginRight: 6,
+              marginRight: 7,
             }}
           />
-          <Text className="text-[11px] font-bold text-fg uppercase tracking-widest">
+          <Text className="text-[13px] font-bold text-fg uppercase tracking-widest">
             {car.type}
           </Text>
         </View>
       </View>
       <View className="flex-1 px-6 py-5 justify-center">
-        <Text className="text-3xl font-black text-fg mb-1 tracking-tight">
+        <Text className="text-[34px] font-black text-fg mb-1 tracking-tight">
           {car.brand}
         </Text>
-        <Text className="text-lg text-fg-muted">{car.model}</Text>
+        <Text className="text-xl text-fg-muted">{car.model}</Text>
       </View>
     </View>
   );

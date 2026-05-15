@@ -2,16 +2,18 @@ import NetInfo from '@react-native-community/netinfo';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
- * Thin banner shown only when the device has no network at all.
+ * Top-anchored offline banner. Pushes screen content down when visible,
+ * vanishes entirely when online.
  *
- * We deliberately do NOT gate on isInternetReachable — that prop has NetInfo
- * try to hit a public host, which fails on LAN-only / corporate / dev networks
- * even when our API is perfectly reachable. isConnected is the right signal
- * for the offline-first guarantee we make to the user.
+ * isInternetReachable is intentionally NOT checked — that prop pings a public
+ * host and returns false on LAN-only / dev / corporate networks even when our
+ * API works perfectly. isConnected is the right signal here.
  */
 export function OfflineBanner() {
+  const insets = useSafeAreaInsets();
   const [online, setOnline] = useState(true);
 
   useEffect(() => {
@@ -31,11 +33,20 @@ export function OfflineBanner() {
   if (online) return null;
 
   return (
-    <View className="bg-red-50 border-b border-red-100 px-4 py-2 flex-row items-center justify-center">
-      <Ionicons name="cloud-offline-outline" size={14} color="#B91C1C" />
-      <Text className="text-[12px] text-red-700 ml-2 font-semibold">
-        Offline · Changes saved locally
-      </Text>
+    <View
+      style={{
+        paddingTop: insets.top,
+        backgroundColor: '#FEE2E2',
+        borderBottomColor: '#FECACA',
+        borderBottomWidth: 1,
+      }}
+    >
+      <View className="px-4 py-2.5 flex-row items-center justify-center">
+        <Ionicons name="cloud-offline-outline" size={16} color="#B91C1C" />
+        <Text className="text-[13px] text-red-700 ml-2 font-semibold">
+          You&apos;re offline · Changes saved locally
+        </Text>
+      </View>
     </View>
   );
 }
