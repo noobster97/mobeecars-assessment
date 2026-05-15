@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Pressable,
   Text,
@@ -16,6 +17,7 @@ import { useToast } from '@/src/components/Toast';
 import { Wordmark } from '@/src/components/Wordmark';
 import {
   CarRow,
+  getAllCars,
   getUnseenCars,
   getUnsyncedCount,
   recordSwipe,
@@ -32,6 +34,7 @@ export default function SwipeScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const [cars, setCars] = useState<CarRow[]>([]);
+  const [totalCars, setTotalCars] = useState(0);
   const [loading, setLoading] = useState(true);
   const [exhausted, setExhausted] = useState(false);
   const [unsynced, setUnsynced] = useState(0);
@@ -47,8 +50,9 @@ export default function SwipeScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     setExhausted(false);
-    const unseen = await getUnseenCars();
+    const [unseen, all] = await Promise.all([getUnseenCars(), getAllCars()]);
     setCars(unseen);
+    setTotalCars(all.length);
     await refreshUnsynced();
     setLoading(false);
   }, [refreshUnsynced]);
@@ -107,6 +111,25 @@ export default function SwipeScreen() {
     }
   }
 
+  function onPressAvatar() {
+    Alert.alert(
+      user?.name ?? 'Account',
+      user?.email ?? '',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign out',
+          style: 'destructive',
+          onPress: () => {
+            haptic.medium();
+            logout();
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  }
+
   if (loading) {
     return (
       <View
@@ -158,34 +181,55 @@ export default function SwipeScreen() {
     <View className="flex-1 bg-surface-subtle">
       <View
         style={{ paddingTop: insets.top + 14, paddingHorizontal: 20 }}
-        className="pb-4 flex-row items-center justify-between"
+        className="pb-4"
       >
-        <View>
+        <View className="flex-row items-center justify-between">
           <Wordmark size="lg" />
-          <Text className="text-[13px] text-fg-muted mt-1">
-            Hi, {user?.name ?? 'there'}
-          </Text>
+          <View className="flex-row items-center gap-2.5">
+            {unsynced > 0 && (
+              <View className="flex-row items-center bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200">
+                <Ionicons name="cloud-upload-outline" size={14} color="#B45309" />
+                <Text className="text-[13px] font-bold text-amber-700 ml-1.5">
+                  {unsynced}
+                </Text>
+              </View>
+            )}
+            <Pressable onPress={onResync} hitSlop={8}>
+              <View className="w-11 h-11 bg-white rounded-2xl items-center justify-center border border-gray-200">
+                <Ionicons name="refresh-outline" size={20} color="#475569" />
+              </View>
+            </Pressable>
+            <Avatar name={user?.name} onPress={onPressAvatar} />
+          </View>
         </View>
-        <View className="flex-row items-center gap-2.5">
-          {unsynced > 0 && (
-            <View className="flex-row items-center bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200">
-              <Ionicons name="cloud-upload-outline" size={14} color="#B45309" />
-              <Text className="text-[13px] font-bold text-amber-700 ml-1.5">
-                {unsynced}
-              </Text>
-            </View>
-          )}
-          <Pressable onPress={onResync} hitSlop={8}>
-            <View className="w-11 h-11 bg-white rounded-2xl items-center justify-center border border-gray-200">
-              <Ionicons name="refresh-outline" size={20} color="#475569" />
-            </View>
-          </Pressable>
-          <Pressable onPress={logout} hitSlop={8}>
-            <View className="w-11 h-11 bg-white rounded-2xl items-center justify-center border border-gray-200">
-              <Ionicons name="log-out-outline" size={20} color="#475569" />
-            </View>
-          </Pressable>
+
+        <View className="flex-row items-center justify-between mt-4">
+          <View className="flex-1 pr-3">
+            <Text className="text-[13px] text-fg-muted">Hi there,</Text>
+            <Text className="text-[18px] font-bold text-fg" numberOfLines={1}>
+              {user?.name?.split(' ')[0] ?? 'driver'} — let&apos;s find your ride.
+            </Text>
+          </View>
+          <View className="bg-primary-50 px-3 py-1.5 rounded-full">
+            <Text className="text-[12px] font-extrabold text-primary-700 uppercase tracking-widest">
+              {cars.length} left
+            </Text>
+          </View>
         </View>
+
+        {totalCars > 0 && (
+          <View className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-3">
+            <View
+              className="h-full bg-primary rounded-full"
+              style={{
+                width: `${Math.min(
+                  100,
+                  Math.max(0, ((totalCars - cars.length) / totalCars) * 100),
+                )}%`,
+              }}
+            />
+          </View>
+        )}
       </View>
 
       <View style={{ flex: 1 }}>
@@ -278,42 +322,77 @@ function ActionButton({
     },
   }[variant];
 
+  // Pressable wraps the entire icon + label group so tapping anywhere fires.
   return (
-    <View style={{ alignItems: 'center' }}>
-      <Pressable
-        onPress={onPress}
-        hitSlop={8}
-        style={({ pressed }) => ({
-          width: config.size,
-          height: config.size,
-          backgroundColor: config.bg,
-          borderRadius: config.size / 2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          transform: [{ scale: pressed ? 0.92 : 1 }],
-          shadowColor: config.shadowColor,
-          shadowOpacity: variant === 'undo' ? 0.08 : 0.22,
-          shadowOffset: { width: 0, height: 6 },
-          shadowRadius: 14,
-          elevation: 5,
-          borderWidth: 0.5,
-          borderColor: '#E2E8F0',
-        })}
-      >
-        <Ionicons name={config.iconName} size={config.iconSize} color={config.iconColor} />
-      </Pressable>
-      <Text
-        style={{
-          marginTop: 8,
-          fontSize: 11,
-          fontWeight: '700',
-          letterSpacing: 1.2,
-          color: config.labelColor,
-        }}
-      >
-        {config.label}
-      </Text>
-    </View>
+    <Pressable onPress={onPress} hitSlop={6}>
+      {({ pressed }) => (
+        <View style={{ alignItems: 'center' }}>
+          <View
+            style={{
+              width: config.size,
+              height: config.size,
+              backgroundColor: config.bg,
+              borderRadius: config.size / 2,
+              alignItems: 'center',
+              justifyContent: 'center',
+              transform: [{ scale: pressed ? 0.92 : 1 }],
+              shadowColor: config.shadowColor,
+              shadowOpacity: variant === 'undo' ? 0.08 : 0.22,
+              shadowOffset: { width: 0, height: 6 },
+              shadowRadius: 14,
+              elevation: 5,
+              borderWidth: 0.5,
+              borderColor: '#E2E8F0',
+            }}
+          >
+            <Ionicons name={config.iconName} size={config.iconSize} color={config.iconColor} />
+          </View>
+          <Text
+            style={{
+              marginTop: 8,
+              fontSize: 11,
+              fontWeight: '700',
+              letterSpacing: 1.2,
+              color: config.labelColor,
+            }}
+          >
+            {config.label}
+          </Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+function Avatar({ name, onPress }: { name?: string; onPress: () => void }) {
+  const initial = (name?.trim().charAt(0) ?? '?').toUpperCase();
+  return (
+    <Pressable onPress={onPress} hitSlop={8}>
+      {({ pressed }) => (
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: '#EF4444',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: [{ scale: pressed ? 0.94 : 1 }],
+            shadowColor: '#EF4444',
+            shadowOpacity: 0.35,
+            shadowOffset: { width: 0, height: 6 },
+            shadowRadius: 12,
+            elevation: 4,
+            borderWidth: 2,
+            borderColor: '#FFFFFF',
+          }}
+        >
+          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '900' }}>
+            {initial}
+          </Text>
+        </View>
+      )}
+    </Pressable>
   );
 }
 
