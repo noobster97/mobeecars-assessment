@@ -75,7 +75,7 @@ export default function RootLayout() {
     });
 
     const netSub = NetInfo.addEventListener((state) => {
-      if (state.isConnected && state.isInternetReachable !== false) {
+      if (state.isConnected) {
         autoSync();
       }
     });

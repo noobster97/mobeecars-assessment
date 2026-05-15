@@ -4,17 +4,28 @@ import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 /**
- * Thin banner that shows when the device loses internet.
- * Reinforces the offline-first promise — user always knows data is saved locally.
+ * Thin banner shown only when the device has no network at all.
+ *
+ * We deliberately do NOT gate on isInternetReachable — that prop has NetInfo
+ * try to hit a public host, which fails on LAN-only / corporate / dev networks
+ * even when our API is perfectly reachable. isConnected is the right signal
+ * for the offline-first guarantee we make to the user.
  */
 export function OfflineBanner() {
   const [online, setOnline] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      setOnline(!!state.isConnected && state.isInternetReachable !== false);
+    let mounted = true;
+    NetInfo.fetch().then((state) => {
+      if (mounted) setOnline(state.isConnected ?? true);
     });
-    return () => unsubscribe();
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (mounted) setOnline(state.isConnected ?? true);
+    });
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
 
   if (online) return null;
