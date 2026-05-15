@@ -387,23 +387,30 @@ function CarCard({ car }: { car: CarRow }) {
   );
 }
 
-function overlayLabel(bg: string, align: 'flex-start' | 'flex-end') {
+/**
+ * Tinder/Bumble-grade overlay stamp: bordered outline, transparent fill,
+ * matching-color text with glow, hard rotation. Reads cleanly over any photo.
+ */
+function overlayLabel(color: string, align: 'flex-start' | 'flex-end') {
   return {
-    backgroundColor: bg,
-    color: 'white',
-    fontSize: 38,
+    color,
+    backgroundColor: 'transparent',
+    fontSize: 50,
     fontWeight: '900' as const,
-    borderRadius: 16,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 5,
+    borderColor: color,
+    paddingHorizontal: 30,
+    paddingTop: 12,
+    paddingBottom: 14,
     overflow: 'hidden' as const,
-    letterSpacing: 3,
-    textAlign: align === 'flex-start' ? ('left' as const) : ('right' as const),
-    transform: [{ rotate: align === 'flex-start' ? '-12deg' : '12deg' }],
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
+    letterSpacing: 6,
+    textAlign: 'center' as const,
+    transform: [{ rotate: align === 'flex-start' ? '-20deg' : '20deg' }],
+    // Soft same-colour glow so the stamp pops off any car photo
+    textShadowColor: color,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   };
 }
 
@@ -412,8 +419,8 @@ function overlayWrapper(align: 'flex-start' | 'flex-end') {
     flexDirection: 'column' as const,
     alignItems: align,
     justifyContent: 'flex-start' as const,
-    marginTop: 50,
-    marginLeft: align === 'flex-start' ? 28 : 0,
-    marginRight: align === 'flex-end' ? 28 : 0,
+    marginTop: 56,
+    marginLeft: align === 'flex-start' ? 36 : 0,
+    marginRight: align === 'flex-end' ? 36 : 0,
   };
 }
