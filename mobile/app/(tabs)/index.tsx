@@ -27,8 +27,7 @@ import { haptic } from '@/src/lib/haptics';
 import { flushLikes, syncCars } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
 
-const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
-const CARD_HEIGHT = Math.min(SCREEN_H * 0.62, 580);
+const { width: SCREEN_W } = Dimensions.get('window');
 
 export default function SwipeScreen() {
   const insets = useSafeAreaInsets();
@@ -39,9 +38,14 @@ export default function SwipeScreen() {
   const [exhausted, setExhausted] = useState(false);
   const [unsynced, setUnsynced] = useState(0);
   const [deckKey, setDeckKey] = useState(0);
+  const [deckArea, setDeckArea] = useState({ height: 0, width: 0 });
   const swiperRef = useRef<Swiper<CarRow> | null>(null);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+
+  // Card height = the actual space the swiper container gets, minus a small
+  // safety margin so cards never visually touch or overlap the action buttons.
+  const cardHeight = Math.max(0, deckArea.height - 24);
 
   const refreshUnsynced = useCallback(async () => {
     setUnsynced(await getUnsyncedCount());
@@ -111,10 +115,10 @@ export default function SwipeScreen() {
     }
   }
 
-  function onPressAvatar() {
+  function onPressLogout() {
     Alert.alert(
-      user?.name ?? 'Account',
-      user?.email ?? '',
+      'Sign out?',
+      `You'll be signed out of ${user?.email ?? 'this account'}.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -199,45 +203,44 @@ export default function SwipeScreen() {
                 <Ionicons name="refresh-outline" size={20} color="#475569" />
               </View>
             </Pressable>
-            <Avatar name={user?.name} onPress={onPressAvatar} />
+            <Pressable onPress={onPressLogout} hitSlop={8}>
+              <View className="flex-row items-center bg-white rounded-2xl px-3 h-11 border border-gray-200">
+                <Ionicons name="log-out-outline" size={20} color="#475569" />
+                <Text className="text-[13px] font-bold text-fg-muted ml-1.5">
+                  Sign out
+                </Text>
+              </View>
+            </Pressable>
           </View>
         </View>
 
         <View className="flex-row items-center justify-between mt-4">
-          <View className="flex-1 pr-3">
-            <Text className="text-[13px] text-fg-muted">Hi there,</Text>
-            <Text className="text-[18px] font-bold text-fg" numberOfLines={1}>
-              {user?.name?.split(' ')[0] ?? 'driver'} — let&apos;s find your ride.
-            </Text>
-          </View>
+          <Text className="flex-1 text-[18px] font-bold text-fg pr-3" numberOfLines={1}>
+            Welcome back, {user?.name?.split(' ')[0] ?? 'driver'}
+          </Text>
           <View className="bg-primary-50 px-3 py-1.5 rounded-full">
             <Text className="text-[12px] font-extrabold text-primary-700 uppercase tracking-widest">
               {cars.length} left
             </Text>
           </View>
         </View>
-
-        {totalCars > 0 && (
-          <View className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-3">
-            <View
-              className="h-full bg-primary rounded-full"
-              style={{
-                width: `${Math.min(
-                  100,
-                  Math.max(0, ((totalCars - cars.length) / totalCars) * 100),
-                )}%`,
-              }}
-            />
-          </View>
-        )}
       </View>
 
-      <View style={{ flex: 1 }}>
+      <View
+        style={{ flex: 1, overflow: 'hidden' }}
+        onLayout={(e) => {
+          const { height, width } = e.nativeEvent.layout;
+          if (height !== deckArea.height || width !== deckArea.width) {
+            setDeckArea({ height, width });
+          }
+        }}
+      >
+        {deckArea.height > 0 && (
         <Swiper
           key={deckKey}
           ref={swiperRef}
           cards={cars}
-          renderCard={(car) => <CarCard car={car} />}
+          renderCard={(car) => <CarCard car={car} height={cardHeight} />}
           onSwipedLeft={(i) => handleSwipe(i, false)}
           onSwipedRight={(i) => handleSwipe(i, true)}
           onSwipedAll={() => setExhausted(true)}
@@ -268,6 +271,7 @@ export default function SwipeScreen() {
             },
           }}
         />
+        )}
       </View>
 
       <View
@@ -364,43 +368,12 @@ function ActionButton({
   );
 }
 
-function Avatar({ name, onPress }: { name?: string; onPress: () => void }) {
-  const initial = (name?.trim().charAt(0) ?? '?').toUpperCase();
-  return (
-    <Pressable onPress={onPress} hitSlop={8}>
-      {({ pressed }) => (
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: '#EF4444',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transform: [{ scale: pressed ? 0.94 : 1 }],
-            shadowColor: '#EF4444',
-            shadowOpacity: 0.35,
-            shadowOffset: { width: 0, height: 6 },
-            shadowRadius: 12,
-            elevation: 4,
-            borderWidth: 2,
-            borderColor: '#FFFFFF',
-          }}
-        >
-          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '900' }}>
-            {initial}
-          </Text>
-        </View>
-      )}
-    </Pressable>
-  );
-}
 
-function CarCard({ car }: { car: CarRow }) {
+function CarCard({ car, height }: { car: CarRow; height: number }) {
   return (
     <View
       style={{
-        height: CARD_HEIGHT,
+        height,
         borderRadius: 28,
         backgroundColor: 'white',
         overflow: 'hidden',
@@ -467,29 +440,29 @@ function CarCard({ car }: { car: CarRow }) {
 }
 
 /**
- * Tinder/Bumble-grade overlay stamp: bordered outline, transparent fill,
- * matching-color text with glow, hard rotation. Reads cleanly over any photo.
+ * Production card-swipe stamp. Bordered outline, transparent fill, matching-
+ * colour text with a soft same-colour glow and hard rotation. Reads cleanly
+ * over any car photo — tested on dark + light imagery.
  */
 function overlayLabel(color: string, align: 'flex-start' | 'flex-end') {
   return {
     color,
     backgroundColor: 'transparent',
-    fontSize: 50,
+    fontSize: 56,
     fontWeight: '900' as const,
-    borderRadius: 20,
-    borderWidth: 5,
+    borderRadius: 22,
+    borderWidth: 6,
     borderColor: color,
-    paddingHorizontal: 30,
-    paddingTop: 12,
-    paddingBottom: 14,
+    paddingHorizontal: 34,
+    paddingTop: 14,
+    paddingBottom: 16,
     overflow: 'hidden' as const,
-    letterSpacing: 6,
+    letterSpacing: 8,
     textAlign: 'center' as const,
-    transform: [{ rotate: align === 'flex-start' ? '-20deg' : '20deg' }],
-    // Soft same-colour glow so the stamp pops off any car photo
+    transform: [{ rotate: align === 'flex-start' ? '-22deg' : '22deg' }],
     textShadowColor: color,
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    textShadowRadius: 14,
   };
 }
 
@@ -498,8 +471,8 @@ function overlayWrapper(align: 'flex-start' | 'flex-end') {
     flexDirection: 'column' as const,
     alignItems: align,
     justifyContent: 'flex-start' as const,
-    marginTop: 56,
-    marginLeft: align === 'flex-start' ? 36 : 0,
-    marginRight: align === 'flex-end' ? 36 : 0,
+    marginTop: 64,
+    marginLeft: align === 'flex-start' ? 40 : 0,
+    marginRight: align === 'flex-end' ? 40 : 0,
   };
 }
