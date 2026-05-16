@@ -7,7 +7,7 @@
 
 <h1 class="text-3xl font-black tracking-tight mb-6">Add new car</h1>
 
-<form method="POST" action="{{ route('admin.cars.store') }}" class="max-w-xl">
+<form method="POST" action="{{ route('admin.cars.store') }}" enctype="multipart/form-data" class="max-w-xl">
     @csrf
     @include('admin.cars._form')
     <div class="flex items-center gap-3 mt-6">

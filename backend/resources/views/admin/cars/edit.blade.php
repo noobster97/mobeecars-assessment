@@ -9,7 +9,7 @@
 <p class="text-sm text-slate-500 mb-6">{{ $car->brand }} {{ $car->model }}</p>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
-    <form method="POST" action="{{ route('admin.cars.update', $car) }}" class="md:col-span-2">
+    <form method="POST" action="{{ route('admin.cars.update', $car) }}" enctype="multipart/form-data" class="md:col-span-2">
         @csrf @method('PATCH')
         @include('admin.cars._form')
         <div class="flex items-center gap-3 mt-6">
