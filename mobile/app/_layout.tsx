@@ -1,5 +1,4 @@
 import NetInfo from '@react-native-community/netinfo';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -15,7 +14,6 @@ import { getLastSyncAt, initDb } from '@/src/lib/db';
 import { flushLikes, syncCars } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
 
-const queryClient = new QueryClient();
 const AUTO_SYNC_TTL_MS = 60 * 1000; // skip syncCars if last sync was within 60 seconds
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -88,23 +86,21 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-            {token ? <OfflineBanner /> : null}
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: '#FFFFFF' },
-              }}
-            >
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(tabs)" />
-            </Stack>
-          </View>
-        </ToastProvider>
-        <StatusBar style="dark" />
-      </QueryClientProvider>
+      <ToastProvider>
+        <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+          {token ? <OfflineBanner /> : null}
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#FFFFFF' },
+            }}
+          >
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+          </Stack>
+        </View>
+      </ToastProvider>
+      <StatusBar style="dark" />
     </SafeAreaProvider>
   );
 }
