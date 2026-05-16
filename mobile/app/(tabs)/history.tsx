@@ -11,9 +11,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getLikeHistory, HistoryRow } from '@/src/lib/db';
+import { relativeTime, useNow } from '@/src/lib/time';
 
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
+  const now = useNow();
   const [items, setItems] = useState<HistoryRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -72,7 +74,7 @@ export default function HistoryScreen() {
               tintColor="#EF4444"
             />
           }
-          renderItem={({ item }) => <HistoryRowCard item={item} />}
+          renderItem={({ item }) => <HistoryRowCard item={item} now={now} />}
           ItemSeparatorComponent={() => <View className="h-2.5" />}
         />
       )}
@@ -80,7 +82,7 @@ export default function HistoryScreen() {
   );
 }
 
-function HistoryRowCard({ item }: { item: HistoryRow }) {
+function HistoryRowCard({ item, now }: { item: HistoryRow; now: number }) {
   const isLiked = item.liked === 1;
   return (
     <View
@@ -109,7 +111,7 @@ function HistoryRowCard({ item }: { item: HistoryRow }) {
         <View className="flex-row items-center mt-1.5">
           <Ionicons name="time-outline" size={13} color="#94A3B8" />
           <Text className="text-[13px] text-fg-subtle ml-1">
-            {relativeTime(item.swiped_at)}
+            {relativeTime(item.swiped_at, now)}
           </Text>
           {item.synced === 0 && (
             <>
@@ -137,14 +139,3 @@ function HistoryRowCard({ item }: { item: HistoryRow }) {
   );
 }
 
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const secs = Math.round(diff / 1000);
-  if (secs < 60) return 'just now';
-  const mins = Math.round(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  return `${days}d ago`;
-}

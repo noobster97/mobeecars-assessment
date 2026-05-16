@@ -15,11 +15,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useToast } from '@/src/components/Toast';
 import {
-  clearUserData,
   getLastSyncAt,
   getTotals,
   getUnsyncedCount,
 } from '@/src/lib/db';
+import { relativeTime, useNow } from '@/src/lib/time';
 import {
   haptic,
   isHapticsEnabled,
@@ -40,6 +40,7 @@ type Snapshot = {
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  const now = useNow();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
 
@@ -102,26 +103,6 @@ export default function ProfileScreen() {
     } finally {
       setSyncing(false);
     }
-  }
-
-  function onClearCache() {
-    Alert.alert(
-      'Clear local data?',
-      "This removes your swipe history from this device. Next sync will keep it on the server.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            haptic.warning();
-            await clearUserData();
-            await load();
-            toast.show({ variant: 'info', message: 'Local swipes cleared.' });
-          },
-        },
-      ],
-    );
   }
 
   function onSignOut() {
@@ -202,7 +183,7 @@ export default function ProfileScreen() {
           />
           <Text className="text-[13px] text-fg-muted ml-2 flex-1">
             {snapshot.lastSyncAt
-              ? `Synced ${relativeTime(snapshot.lastSyncAt)}`
+              ? `Synced ${relativeTime(snapshot.lastSyncAt, now)}`
               : 'Not yet synced'}
             {snapshot.unsynced > 0 ? ` · ${snapshot.unsynced} pending` : ''}
           </Text>
@@ -234,16 +215,6 @@ export default function ProfileScreen() {
           sublabel="Refresh inventory & upload pending likes"
           onPress={onSyncNow}
           loading={syncing}
-        />
-
-        <Divider />
-
-        <ActionRow
-          icon="trash-outline"
-          label="Clear local cache"
-          sublabel="Reset swipe history on this device"
-          danger
-          onPress={onClearCache}
         />
       </View>
 
@@ -364,14 +335,3 @@ function Divider() {
   return <View className="h-px bg-gray-100 ml-16" />;
 }
 
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const secs = Math.round(diff / 1000);
-  if (secs < 60) return 'just now';
-  const mins = Math.round(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  return `${days}d ago`;
-}

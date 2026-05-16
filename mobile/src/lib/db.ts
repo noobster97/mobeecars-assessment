@@ -264,6 +264,35 @@ export async function clearUserData(): Promise<void> {
   await d.execAsync('DELETE FROM user_car_likes');
 }
 
+/**
+ * Restore the authoritative swipe history from the backend into local SQLite.
+ * Used on login so the device shows the same liked/skipped state regardless
+ * of which device the user previously swiped on — and so a tampered local
+ * SQLite cannot diverge from server truth.
+ *
+ * Server rows arrive with synced=1 (already on server) and overwrite any
+ * conflicting local rows.
+ */
+export async function restoreLikesFromServer(
+  rows: { car_id: number; liked: boolean; swiped_at: string }[],
+): Promise<number> {
+  const d = await getDb();
+  await d.withTransactionAsync(async () => {
+    for (const r of rows) {
+      await d.runAsync(
+        `INSERT INTO user_car_likes (car_id, liked, swiped_at, synced)
+         VALUES (?, ?, ?, 1)
+         ON CONFLICT(car_id) DO UPDATE SET
+           liked     = excluded.liked,
+           swiped_at = excluded.swiped_at,
+           synced    = 1`,
+        [r.car_id, r.liked ? 1 : 0, r.swiped_at],
+      );
+    }
+  });
+  return rows.length;
+}
+
 /* ---------- meta (kv) ---------- */
 
 export async function setMeta(key: string, value: string): Promise<void> {

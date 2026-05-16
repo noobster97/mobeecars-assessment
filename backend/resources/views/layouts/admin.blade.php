@@ -28,6 +28,40 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', system-ui, sans-serif; }</style>
+    <script>
+        // Auto-refresh relative-time labels every 30s so "1 minute ago"
+        // doesn't go stale while the admin keeps the page open.
+        // Markup: <time data-rel datetime="ISO">...</time>
+        (function () {
+            function fmt(iso) {
+                var diff = Date.now() - new Date(iso).getTime();
+                var secs = Math.max(0, Math.round(diff / 1000));
+                if (secs < 30) return 'just now';
+                if (secs < 60) return secs + 's ago';
+                var mins = Math.round(secs / 60);
+                if (mins < 60) return mins + 'm ago';
+                var hours = Math.round(mins / 60);
+                if (hours < 24) return hours + 'h ago';
+                var days = Math.round(hours / 24);
+                if (days < 7) return days + 'd ago';
+                var weeks = Math.round(days / 7);
+                if (weeks < 5) return weeks + 'w ago';
+                var months = Math.round(days / 30);
+                if (months < 12) return months + 'mo ago';
+                return Math.round(days / 365) + 'y ago';
+            }
+            function tick() {
+                document.querySelectorAll('time[data-rel]').forEach(function (el) {
+                    var iso = el.getAttribute('datetime');
+                    if (iso) el.textContent = fmt(iso);
+                });
+            }
+            document.addEventListener('DOMContentLoaded', function () {
+                tick();
+                setInterval(tick, 30000);
+            });
+        })();
+    </script>
 </head>
 <body class="h-full text-slate-900 antialiased">
 

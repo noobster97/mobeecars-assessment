@@ -21,6 +21,7 @@ import {
   ReportModelRow,
   ReportRow,
 } from '@/src/lib/db';
+import { relativeTime, useNow } from '@/src/lib/time';
 
 type Stats = {
   brand: ReportRow | null;
@@ -36,6 +37,7 @@ type Stats = {
 
 export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
+  const now = useNow();
   const [stats, setStats] = useState<Stats | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -114,6 +116,7 @@ export default function ReportsScreen() {
       <SyncStatusLine
         lastSyncAt={stats.lastSyncAt}
         unsynced={stats.unsynced}
+        now={now}
       />
 
       <View className="flex-row gap-3 mt-5 mb-2">
@@ -244,9 +247,11 @@ function SectionLabel({ text }: { text: string }) {
 function SyncStatusLine({
   lastSyncAt,
   unsynced,
+  now,
 }: {
   lastSyncAt: string | null;
   unsynced: number;
+  now: number;
 }) {
   return (
     <View className="flex-row items-center mt-1">
@@ -256,7 +261,7 @@ function SyncStatusLine({
         color={unsynced > 0 ? '#B45309' : '#94A3B8'}
       />
       <Text className="text-[13px] text-fg-muted ml-1.5">
-        {lastSyncAt ? `Synced ${relativeTime(lastSyncAt)}` : 'Not yet synced'}
+        {lastSyncAt ? `Synced ${relativeTime(lastSyncAt, now)}` : 'Not yet synced'}
         {unsynced > 0 ? ` · ${unsynced} pending` : ''}
       </Text>
     </View>
@@ -366,14 +371,3 @@ function DistributionBar({
   );
 }
 
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const secs = Math.round(diff / 1000);
-  if (secs < 60) return 'just now';
-  const mins = Math.round(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  return `${days}d ago`;
-}

@@ -114,7 +114,9 @@
                             <span class="text-slate-500">{{ $row->liked ? 'liked' : 'skipped' }}</span>
                             <span class="font-semibold text-slate-900">{{ $row->car->brand }} {{ $row->car->model }}</span>
                         </div>
-                        <div class="text-[11px] text-slate-400">{{ $row->swiped_at?->diffForHumans() }}</div>
+                        <div class="text-[11px] text-slate-400">
+                            <time data-rel datetime="{{ $row->swiped_at?->toIso8601String() }}">{{ $row->swiped_at?->diffForHumans() }}</time>
+                        </div>
                     </div>
                     @if($row->liked)
                         <span class="text-emerald-600">

@@ -4,8 +4,15 @@ import {
   getUnsyncedLikes,
   markLikesSynced,
   replaceCars,
+  restoreLikesFromServer,
   setLastSyncAt,
 } from '@/src/lib/db';
+
+type ServerLikeRow = {
+  car_id: number;
+  liked: boolean;
+  swiped_at: string;
+};
 
 /**
  * Pull the full car inventory and replace the local SQLite snapshot.
@@ -38,6 +45,16 @@ export async function flushLikes(): Promise<number> {
   await markLikesSynced(likes.map((l) => l.car_id));
   await setLastSyncAt(new Date().toISOString());
   return likes.length;
+}
+
+/**
+ * Pull the user's authoritative swipe history from the server into local
+ * SQLite. Called on login so the device shows the right liked/skipped state
+ * regardless of which device the user previously swiped on.
+ */
+export async function pullLikeHistory(): Promise<number> {
+  const { data } = await api.get<{ likes: ServerLikeRow[] }>('/likes');
+  return restoreLikesFromServer(data.likes);
 }
 
 /**

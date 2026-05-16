@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Wordmark } from '@/src/components/Wordmark';
 import { haptic } from '@/src/lib/haptics';
-import { syncCars } from '@/src/lib/sync';
+import { pullLikeHistory, syncCars } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
 
 export default function LoginScreen() {
@@ -41,6 +41,7 @@ export default function LoginScreen() {
       await login(email.trim(), password);
       try {
         await syncCars();
+        await pullLikeHistory();
       } catch {
         // sync failure isn't fatal — swipe screen will offer manual retry
       }

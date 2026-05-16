@@ -13,6 +13,7 @@ import {
 import Swiper from 'react-native-deck-swiper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ConfettiBurst } from '@/src/components/ConfettiBurst';
 import { useToast } from '@/src/components/Toast';
 import { Wordmark } from '@/src/components/Wordmark';
 import {
@@ -39,6 +40,7 @@ export default function SwipeScreen() {
   const [unsynced, setUnsynced] = useState(0);
   const [deckKey, setDeckKey] = useState(0);
   const [swipedCount, setSwipedCount] = useState(0);
+  const [confettiTick, setConfettiTick] = useState(0);
   const [deckArea, setDeckArea] = useState({ height: 0, width: 0 });
   const swiperRef = useRef<Swiper<CarRow> | null>(null);
   const user = useAuthStore((s) => s.user);
@@ -95,6 +97,10 @@ export default function SwipeScreen() {
     const car = cars[cardIndex];
     if (!car) return;
     haptic.medium();
+    if (liked) {
+      haptic.success();
+      setConfettiTick((t) => t + 1);
+    }
     await recordSwipe(car.id, liked, new Date().toISOString());
     setSwipedCount((c) => c + 1);
     await refreshUnsynced();
@@ -236,6 +242,7 @@ export default function SwipeScreen() {
           }
         }}
       >
+        <ConfettiBurst trigger={confettiTick} />
         {deckArea.height > 0 && (
         <Swiper
           key={deckKey}
