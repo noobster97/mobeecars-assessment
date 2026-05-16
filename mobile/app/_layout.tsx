@@ -16,7 +16,7 @@ import { flushLikes, syncCars } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
 
 const queryClient = new QueryClient();
-const AUTO_SYNC_TTL_MS = 5 * 60 * 1000; // skip syncCars if last sync was within 5 minutes
+const AUTO_SYNC_TTL_MS = 60 * 1000; // skip syncCars if last sync was within 60 seconds
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 

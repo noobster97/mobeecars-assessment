@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -37,9 +38,15 @@ export default function SwipeScreen() {
   const [exhausted, setExhausted] = useState(false);
   const [unsynced, setUnsynced] = useState(0);
   const [deckKey, setDeckKey] = useState(0);
+  const [swipedCount, setSwipedCount] = useState(0);
   const [deckArea, setDeckArea] = useState({ height: 0, width: 0 });
   const swiperRef = useRef<Swiper<CarRow> | null>(null);
   const user = useAuthStore((s) => s.user);
+
+  // Cards remaining in the current deck stack = total loaded minus how many
+  // have been swiped so far. cars.length alone doesn't decrement because the
+  // deck-swiper consumes from the front internally without mutating the array.
+  const remaining = Math.max(0, cars.length - swipedCount);
 
   // Card height = the actual space the swiper container gets, minus a small
   // safety margin so cards never visually touch or overlap the action buttons.
@@ -52,6 +59,7 @@ export default function SwipeScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     setExhausted(false);
+    setSwipedCount(0);
     const [unseen, all] = await Promise.all([getUnseenCars(), getAllCars()]);
     setCars(unseen);
     setTotalCars(all.length);
@@ -63,11 +71,29 @@ export default function SwipeScreen() {
     load();
   }, [load]);
 
+  // Force a fresh inventory pull every time the Discover tab gains focus,
+  // so admin-side edits (image updates, new cars, removed cars) become
+  // visible without the user having to log out and back in.
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        try {
+          await syncCars();
+        } catch {
+          // silent — the user can still browse cached data offline
+        }
+        flushLikes().catch(() => undefined);
+        await load();
+      })();
+    }, [load]),
+  );
+
   async function handleSwipe(cardIndex: number, liked: boolean) {
     const car = cars[cardIndex];
     if (!car) return;
     haptic.medium();
     await recordSwipe(car.id, liked, new Date().toISOString());
+    setSwipedCount((c) => c + 1);
     await refreshUnsynced();
     flushLikes()
       .then(refreshUnsynced)
@@ -94,6 +120,7 @@ export default function SwipeScreen() {
     // Reload the unseen list — the un-swiped car is now back in it.
     const fresh = await getUnseenCars();
     setCars(fresh);
+    setSwipedCount(0);
     setExhausted(false);
     setDeckKey((k) => k + 1); // force the deck to remount at index 0
     await refreshUnsynced();
@@ -191,7 +218,7 @@ export default function SwipeScreen() {
           </Text>
           <View className="bg-primary-50 px-3 py-1.5 rounded-full">
             <Text className="text-[12px] font-extrabold text-primary-700 uppercase tracking-widest">
-              {cars.length} left
+              {remaining} / {totalCars} left
             </Text>
           </View>
         </View>
