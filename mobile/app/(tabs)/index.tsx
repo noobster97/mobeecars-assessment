@@ -71,21 +71,24 @@ export default function SwipeScreen() {
     load();
   }, [load]);
 
-  // Force a fresh inventory pull every time the Discover tab gains focus,
-  // so admin-side edits (image updates, new cars, removed cars) become
-  // visible without the user having to log out and back in.
+  // Silent background sync on tab focus. Writes fresh inventory into
+  // SQLite + drains queued likes, but does NOT reload the visible deck —
+  // mid-swipe deck reloads feel like a forced refresh. Fresh data surfaces
+  // when the user explicitly hits the refresh icon, finishes the deck,
+  // or re-opens the app.
   useFocusEffect(
     useCallback(() => {
       (async () => {
         try {
           await syncCars();
         } catch {
-          // silent — the user can still browse cached data offline
+          // silent — cached data still works
         }
-        flushLikes().catch(() => undefined);
-        await load();
+        flushLikes()
+          .then(refreshUnsynced)
+          .catch(() => undefined);
       })();
-    }, [load]),
+    }, [refreshUnsynced]),
   );
 
   async function handleSwipe(cardIndex: number, liked: boolean) {
