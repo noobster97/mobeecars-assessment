@@ -4,7 +4,7 @@
 <div class="min-h-[calc(100vh-4rem)] -mt-8 flex items-center justify-center px-4">
     <div class="w-full max-w-md">
         <div class="text-center mb-8">
-            <div class="text-5xl font-black text-primary-500 tracking-tight mb-2">///mobee</div>
+            <img src="{{ asset('images/mobee-logo.png') }}" alt="Mobee" class="h-12 mx-auto mb-4">
             <h1 class="text-xl font-bold text-slate-900">Admin sign in</h1>
             <p class="text-sm text-slate-500 mt-1">Mobee Cars internal dashboard</p>
         </div>
