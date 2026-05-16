@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Pressable,
   Text,
@@ -41,7 +40,6 @@ export default function SwipeScreen() {
   const [deckArea, setDeckArea] = useState({ height: 0, width: 0 });
   const swiperRef = useRef<Swiper<CarRow> | null>(null);
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
 
   // Card height = the actual space the swiper container gets, minus a small
   // safety margin so cards never visually touch or overlap the action buttons.
@@ -115,25 +113,6 @@ export default function SwipeScreen() {
     }
   }
 
-  function onPressLogout() {
-    Alert.alert(
-      'Sign out?',
-      `You'll be signed out of ${user?.email ?? 'this account'}.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign out',
-          style: 'destructive',
-          onPress: () => {
-            haptic.medium();
-            logout();
-          },
-        },
-      ],
-      { cancelable: true },
-    );
-  }
-
   if (loading) {
     return (
       <View
@@ -174,9 +153,9 @@ export default function SwipeScreen() {
           <Ionicons name="refresh" size={18} color="#FFFFFF" />
           <Text className="text-white font-bold ml-2">Sync inventory</Text>
         </Pressable>
-        <Pressable onPress={logout} className="mt-6" hitSlop={10}>
-          <Text className="text-fg-subtle text-sm">Sign out</Text>
-        </Pressable>
+        <Text className="mt-6 text-fg-subtle text-sm text-center">
+          Settings & sign out are in the Profile tab.
+        </Text>
       </View>
     );
   }
@@ -201,14 +180,6 @@ export default function SwipeScreen() {
             <Pressable onPress={onResync} hitSlop={8}>
               <View className="w-11 h-11 bg-white rounded-2xl items-center justify-center border border-gray-200">
                 <Ionicons name="refresh-outline" size={20} color="#475569" />
-              </View>
-            </Pressable>
-            <Pressable onPress={onPressLogout} hitSlop={8}>
-              <View className="flex-row items-center bg-white rounded-2xl px-3 h-11 border border-gray-200">
-                <Ionicons name="log-out-outline" size={20} color="#475569" />
-                <Text className="text-[13px] font-bold text-fg-muted ml-1.5">
-                  Sign out
-                </Text>
               </View>
             </Pressable>
           </View>
