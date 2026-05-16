@@ -7,6 +7,7 @@ import {
   restoreLikesFromServer,
   setLastSyncAt,
 } from '@/src/lib/db';
+import { useSyncStore } from '@/src/stores/sync';
 
 type ServerLikeRow = {
   car_id: number;
@@ -22,6 +23,7 @@ export async function syncCars(): Promise<number> {
   const { data } = await api.get<{ cars: CarRow[]; total: number }>('/cars');
   await replaceCars(data.cars);
   await setLastSyncAt(new Date().toISOString());
+  useSyncStore.getState().bump();
   return data.total;
 }
 
@@ -54,7 +56,9 @@ export async function flushLikes(): Promise<number> {
  */
 export async function pullLikeHistory(): Promise<number> {
   const { data } = await api.get<{ likes: ServerLikeRow[] }>('/likes');
-  return restoreLikesFromServer(data.likes);
+  const count = await restoreLikesFromServer(data.likes);
+  useSyncStore.getState().bump();
+  return count;
 }
 
 /**

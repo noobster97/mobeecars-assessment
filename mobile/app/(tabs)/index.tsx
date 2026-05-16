@@ -27,6 +27,7 @@ import {
 import { haptic } from '@/src/lib/haptics';
 import { describeSyncError, flushLikes, syncCars } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
+import { useSyncStore } from '@/src/stores/sync';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -43,6 +44,7 @@ export default function SwipeScreen() {
   const [confettiTick, setConfettiTick] = useState(0);
   const [deckArea, setDeckArea] = useState({ height: 0, width: 0 });
   const swiperRef = useRef<Swiper<CarRow> | null>(null);
+  const lastLoadedVersion = useRef<number>(0);
   const user = useAuthStore((s) => s.user);
 
   // Cards remaining in the current deck stack = total loaded minus how many
@@ -62,24 +64,42 @@ export default function SwipeScreen() {
     setLoading(true);
     setExhausted(false);
     setSwipedCount(0);
+    const versionAtStart = useSyncStore.getState().version;
     const [unseen, all] = await Promise.all([getUnseenCars(), getAllCars()]);
     setCars(unseen);
     setTotalCars(all.length);
+    lastLoadedVersion.current = versionAtStart;
     await refreshUnsynced();
     setLoading(false);
+  }, [refreshUnsynced]);
+
+  // Silent reload — no spinner. Used when the local SQLite snapshot has
+  // changed elsewhere (Profile's Sync now, login restore, etc) and Discover
+  // needs to surface the fresh state without flashing the loading screen.
+  const silentReload = useCallback(async () => {
+    const versionAtStart = useSyncStore.getState().version;
+    const [unseen, all] = await Promise.all([getUnseenCars(), getAllCars()]);
+    setCars(unseen);
+    setTotalCars(all.length);
+    setSwipedCount(0);
+    setExhausted(false);
+    setDeckKey((k) => k + 1);
+    lastLoadedVersion.current = versionAtStart;
+    await refreshUnsynced();
   }, [refreshUnsynced]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // Silent background sync on tab focus. Writes fresh inventory into
-  // SQLite + drains queued likes, but does NOT reload the visible deck —
-  // mid-swipe deck reloads feel like a forced refresh. Fresh data surfaces
-  // when the user explicitly hits the refresh icon, finishes the deck,
-  // or re-opens the app.
+  // On tab focus: (1) if local data has been updated elsewhere since we
+  // last loaded, silently refresh — no spinner. (2) Always trigger a
+  // background sync + likes flush so next visit reflects server truth.
   useFocusEffect(
     useCallback(() => {
+      if (useSyncStore.getState().version > lastLoadedVersion.current) {
+        silentReload();
+      }
       (async () => {
         try {
           await syncCars();
@@ -90,7 +110,7 @@ export default function SwipeScreen() {
           .then(refreshUnsynced)
           .catch(() => undefined);
       })();
-    }, [refreshUnsynced]),
+    }, [refreshUnsynced, silentReload]),
   );
 
   async function handleSwipe(cardIndex: number, liked: boolean) {
