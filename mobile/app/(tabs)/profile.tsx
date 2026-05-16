@@ -25,7 +25,7 @@ import {
   isHapticsEnabled,
   setHapticsEnabled,
 } from '@/src/lib/haptics';
-import { flushLikes, syncCars } from '@/src/lib/sync';
+import { describeSyncError, flushLikes, syncCars } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
 
 const HAPTICS_KEY = 'mobeecars_haptics_enabled';
@@ -96,9 +96,9 @@ export default function ProfileScreen() {
         message: `Synced ${total} cars. Likes uploaded.`,
       });
       await load();
-    } catch {
+    } catch (err: any) {
       haptic.warning();
-      toast.show({ variant: 'error', message: "Couldn't reach the server." });
+      toast.show({ variant: 'error', message: describeSyncError(err) });
     } finally {
       setSyncing(false);
     }

@@ -39,3 +39,22 @@ export async function flushLikes(): Promise<number> {
   await setLastSyncAt(new Date().toISOString());
   return likes.length;
 }
+
+/**
+ * Maps a raw axios/network error to a human-readable cause so the user can
+ * actually diagnose. The generic "you're offline" message hides real causes
+ * like the server bound to 127.0.0.1 only, or a wrong EXPO_PUBLIC_API_URL.
+ */
+export function describeSyncError(err: any): string {
+  if (err?.code === 'ECONNABORTED') {
+    return 'Sync timed out — server is slow or unreachable.';
+  }
+  if (err?.message === 'Network Error' || !err?.response) {
+    return "Server unreachable. Check it's started with --host=0.0.0.0 and your phone is on the same Wi-Fi.";
+  }
+  const status = err?.response?.status;
+  if (status === 401) return 'Session expired. Sign out and back in.';
+  if (status === 404) return 'API endpoint not found — check EXPO_PUBLIC_API_URL.';
+  if (status >= 500) return 'Server error. Check Laravel logs.';
+  return err?.response?.data?.message ?? 'Sync failed.';
+}

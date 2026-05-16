@@ -23,7 +23,7 @@ import {
   undoLastSwipe,
 } from '@/src/lib/db';
 import { haptic } from '@/src/lib/haptics';
-import { flushLikes, syncCars } from '@/src/lib/sync';
+import { describeSyncError, flushLikes, syncCars } from '@/src/lib/sync';
 import { useAuthStore } from '@/src/stores/auth';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -107,9 +107,9 @@ export default function SwipeScreen() {
       haptic.success();
       toast.show({ variant: 'success', message: `Refreshed ${total} cars from the server.` });
       await load();
-    } catch {
+    } catch (err: any) {
       haptic.warning();
-      toast.show({ variant: 'error', message: "Couldn't reach the server. You're offline." });
+      toast.show({ variant: 'error', message: describeSyncError(err) });
     }
   }
 
@@ -447,3 +447,4 @@ function overlayWrapper(align: 'flex-start' | 'flex-end') {
     marginRight: align === 'flex-end' ? 40 : 0,
   };
 }
+
