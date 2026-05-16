@@ -221,7 +221,7 @@ export default function SwipeScreen() {
           </Text>
           <View className="bg-primary-50 px-3 py-1.5 rounded-full">
             <Text className="text-[12px] font-extrabold text-primary-700 uppercase tracking-widest">
-              {remaining} / {totalCars} left
+              {remaining} left
             </Text>
           </View>
         </View>
